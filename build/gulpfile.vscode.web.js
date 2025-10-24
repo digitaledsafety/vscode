@@ -142,6 +142,16 @@ const minifyVSCodeWebTask = task.define('minify-vscode-web', task.series(
 ));
 gulp.task(minifyVSCodeWebTask);
 
+const webpackBuildWebTask = task.define('webpack-build-web', () => {
+	const webpack = require('webpack');
+	const webpackStream = require('webpack-stream');
+	const webpackConfig = require('../webpack.config.js');
+
+	return webpackStream(webpackConfig, webpack)
+		.pipe(gulp.dest(webpackConfig.output.path));
+});
+gulp.task(webpackBuildWebTask);
+
 /**
  * @param {string} sourceFolderName
  * @param {string} destinationFolderName
