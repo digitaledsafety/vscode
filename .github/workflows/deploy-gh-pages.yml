@@ -43,14 +43,8 @@ jobs:
         run: pnpm -C build install --ignore-scripts
 
       - name: Build static site
-        env:
-          VSCODE_STATIC_CNAME: ${{ vars.CUSTOM_DOMAIN }}
         run: |
-          if [ -n "$VSCODE_STATIC_CNAME" ]; then
-            export VSCODE_STATIC_BASE_URL="/"
-          else
-            export VSCODE_STATIC_BASE_URL="/${{ github.event.repository.name }}"
-          fi
+          export VSCODE_STATIC_BASE_URL="/${{ github.event.repository.name }}"
           pnpm run build-static-min
 
       - name: Upload Pages artifact

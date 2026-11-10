@@ -152,8 +152,8 @@ function packageStaticTask(sourceFolderName: string, destinationDir: string) {
 			gulp.src('resources/server/code-512.png', { base: 'resources/server' })
 		);
 
-		// Static site entry points: index.html, .nojekyll, and optional CNAME for GitHub Pages
-		const staticFiles: File[] = [
+		// Static site entry points: index.html and .nojekyll for GitHub Pages
+		const staticFilesStream = es.readArray([
 			new File({
 				path: 'index.html',
 				base: '.',
@@ -164,20 +164,7 @@ function packageStaticTask(sourceFolderName: string, destinationDir: string) {
 				base: '.',
 				contents: Buffer.from('')
 			})
-		];
-
-		const cnameContent = process.env['VSCODE_STATIC_CNAME']
-			?? (fs.existsSync(path.join(REPO_ROOT, 'CNAME')) ? fs.readFileSync(path.join(REPO_ROOT, 'CNAME'), 'utf8').trim() : undefined);
-
-		if (cnameContent) {
-			staticFiles.push(new File({
-				path: 'CNAME',
-				base: '.',
-				contents: Buffer.from(`${cnameContent}\n`)
-			}));
-		}
-
-		const staticFilesStream = es.readArray(staticFiles);
+		]);
 
 		const all = es.merge(
 			sources,

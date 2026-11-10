@@ -44,13 +44,4 @@ suite('Static Web Packaging', () => {
 		assert.ok(staticTask, 'vscode-web-static task is registered');
 		assert.ok(staticMinTask, 'vscode-web-static-min task is registered');
 	});
-
-	test('supports custom CNAME domain configuration', () => {
-		process.env['VSCODE_STATIC_CNAME'] = 'code.example.com';
-		try {
-			assert.strictEqual(process.env['VSCODE_STATIC_CNAME'], 'code.example.com');
-		} finally {
-			delete process.env['VSCODE_STATIC_CNAME'];
-		}
-	});
 });
