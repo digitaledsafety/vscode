@@ -169,6 +169,7 @@ function getEntryPointsForTarget(target: BuildTarget): string[] {
 				...workerEntryPoints,
 				...webOnlyEntryPoints,
 				'vs/workbench/workbench.web.main.internal', // web workbench only (no browser shell)
+				'vs/code/browser/workbench/workbench',
 				...keyboardMapEntryPoints,
 			];
 		default:
@@ -197,6 +198,7 @@ function getCssBundleEntryPointsForTarget(target: BuildTarget): Set<string> {
 		case 'web':
 			return new Set([
 				'vs/workbench/workbench.web.main.internal',
+				'vs/code/browser/workbench/workbench',
 				'vs/sessions/sessions.web.main.internal',
 			]);
 		default:
