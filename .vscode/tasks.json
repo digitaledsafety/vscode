@@ -702,6 +702,17 @@
 				"Write-Output \"134 passed, 0 failed, 1 skipped, 135 total\"; Start-Sleep -Seconds 2; Write-Output \"[PASS] E2E Tests\"; Write-Output \"Watching for changes...\""
 			],
 			"isBackground": false
+		},
+		{
+			"label": "Build Static VS Code",
+			"detail": "Build a static site version of VS Code into dist/ for static hosting like GitHub Pages.",
+			"type": "shell",
+			"command": "pnpm run build-static",
+			"windows": {
+				"command": "cmd /c \"pnpm run build-static\""
+			},
+			"group": "build",
+			"problemMatcher": []
 		}
 	]
 }

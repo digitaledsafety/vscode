@@ -83,6 +83,8 @@
     "web": "echo 'pnpm run web' is replaced by './scripts/code-server' or './scripts/code-web'",
     "compile-cli": "pnpm run gulp compile-cli",
     "compile-web": "pnpm run gulp compile-web",
+    "build-static": "pnpm run gulp vscode-web-static",
+    "build-static-min": "pnpm run gulp vscode-web-static-min",
     "serve-out-rspack": "cd build/rspack && pnpm exec rspack serve --config rspack.serve-out.config.mts",
     "watch-web": "pnpm run gulp watch-web",
     "watch-cli": "pnpm run gulp watch-cli",
