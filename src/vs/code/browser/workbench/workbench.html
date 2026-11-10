@@ -87,7 +87,7 @@
 	<!-- Startup (do not modify order of script tags!) -->
 	<script nonce="{{WORKBENCH_SCRIPT_NONCE}}">
 		const baseUrl = new URL(document.getElementById('vscode-workbench-web-base-url').getAttribute('data-settings'), window.location.origin).toString();
-		globalThis._VSCODE_FILE_ROOT = baseUrl + '/out/';
+		globalThis._VSCODE_FILE_ROOT = baseUrl.replace(/\/+$/, '') + '/out/';
 	</script>
 	<script nonce="{{WORKBENCH_SCRIPT_NONCE}}">
 		performance.mark('code/willLoadWorkbenchMain');

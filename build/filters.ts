@@ -196,6 +196,7 @@ export const copyrightFilter = Object.freeze<string[]>([
 	'!**/*.fish',
 	'!**/*.txt',
 	'!**/*.xpm',
+	'!CNAME',
 	'!**/*.opts',
 	'!**/*.disabled',
 	'!**/*.code-workspace',
