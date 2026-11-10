@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { suite, test } from 'node:test';
-import { createStaticWorkbenchHtml, renderWorkbenchTemplate } from '../../gulpfile.vscode.web.ts';
+import { createStaticWorkbenchHtml, getStaticBaseUrl, renderWorkbenchTemplate } from '../../gulpfile.vscode.web.ts';
 import * as task from '../gulp/task.ts';
 
 suite('Static Web Packaging', () => {
@@ -49,8 +49,26 @@ suite('Static Web Packaging', () => {
 		process.env['VSCODE_STATIC_CNAME'] = 'code.example.com';
 		try {
 			assert.strictEqual(process.env['VSCODE_STATIC_CNAME'], 'code.example.com');
+			assert.strictEqual(getStaticBaseUrl(), '');
 		} finally {
 			delete process.env['VSCODE_STATIC_CNAME'];
 		}
+	});
+
+	test('renders clean root-relative asset URLs when CNAME is active without double slashes', () => {
+		const html = createStaticWorkbenchHtml('');
+
+		assert.ok(html.includes('href="/out/vs/code/browser/workbench/workbench.css"'), 'references root workbench css without double slash');
+		assert.ok(html.includes('src="/out/vs/code/browser/workbench/workbench.js"'), 'references root workbench js without double slash');
+		assert.ok(!html.includes('//out'), 'does not contain protocol-relative double slashes //out');
+		assert.ok(!html.includes('/vscode/out/'), 'does not contain repository subpath when CNAME is active');
+	});
+
+	test('normalizes baseUrl when trailing slash is passed', () => {
+		const html = createStaticWorkbenchHtml('/');
+
+		assert.ok(html.includes('href="/out/vs/code/browser/workbench/workbench.css"'), 'normalized single slash workbench css');
+		assert.ok(html.includes('src="/out/vs/code/browser/workbench/workbench.js"'), 'normalized single slash workbench js');
+		assert.ok(!html.includes('//out'), 'does not contain //out');
 	});
 });

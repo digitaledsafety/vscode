@@ -49,23 +49,40 @@ export function renderWorkbenchTemplate(template: string, values: Record<string,
 	return template.replace(/\{\{([^}]+)\}\}/g, (_, key) => htmlAttributeEncodeValue(values[key] ?? 'undefined'));
 }
 
-export function createStaticWorkbenchHtml(baseUrl: string = process.env['VSCODE_STATIC_BASE_URL'] || '.'): string {
+export function getStaticBaseUrl(): string {
+	if (process.env['VSCODE_STATIC_BASE_URL'] !== undefined) {
+		return process.env['VSCODE_STATIC_BASE_URL'];
+	}
+
+	const hasCname = Boolean(
+		process.env['VSCODE_STATIC_CNAME']
+		|| (fs.existsSync(path.join(REPO_ROOT, 'CNAME')) && fs.readFileSync(path.join(REPO_ROOT, 'CNAME'), 'utf8').trim())
+	);
+
+	return hasCname ? '' : '.';
+}
+
+export function createStaticWorkbenchHtml(baseUrl: string = getStaticBaseUrl()): string {
 	const templatePath = path.join(REPO_ROOT, 'src', 'vs', 'code', 'browser', 'workbench', 'workbench.html');
 	const template = fs.readFileSync(templatePath, 'utf8');
+
+	const normalizedBase = baseUrl === '.' ? '.' : baseUrl.replace(/\/+$/, '');
+	const callbackRoute = normalizedBase ? `${normalizedBase}/callback` : '/callback';
+	const nlsFallbackUrl = normalizedBase ? `${normalizedBase}/out/nls.messages.js` : '/out/nls.messages.js';
 
 	const workbenchWebConfiguration = {
 		serverBasePath: baseUrl,
 		_wrapWebWorkerExtHostInIframe: false,
-		callbackRoute: `${baseUrl}/callback`
+		callbackRoute
 	};
 
 	const scriptNonce = 'static-build-nonce';
 	const values: Record<string, string> = {
 		WORKBENCH_WEB_CONFIGURATION: JSON.stringify(workbenchWebConfiguration),
 		WORKBENCH_AUTH_SESSION: '',
-		WORKBENCH_WEB_BASE_URL: baseUrl,
+		WORKBENCH_WEB_BASE_URL: normalizedBase,
 		WORKBENCH_NLS_URL: '',
-		WORKBENCH_NLS_FALLBACK_URL: `${baseUrl}/out/nls.messages.js`,
+		WORKBENCH_NLS_FALLBACK_URL: nlsFallbackUrl,
 		WORKBENCH_SCRIPT_NONCE: scriptNonce
 	};
 

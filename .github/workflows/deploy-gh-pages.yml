@@ -42,12 +42,38 @@ jobs:
       - name: Install build tool dependencies
         run: pnpm -C build install --ignore-scripts
 
+      - name: Determine Pages custom domain
+        id: pages-domain
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PAGES_CNAME=$(curl -s -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${{ github.repository }}/pages" | node -e '
+            let data = "";
+            process.stdin.on("data", chunk => data += chunk);
+            process.stdin.on("end", () => {
+              try {
+                const parsed = JSON.parse(data);
+                console.log(parsed.cname || "");
+              } catch {
+                console.log("");
+              }
+            });
+          ')
+          echo "cname=$PAGES_CNAME" >> "$GITHUB_OUTPUT"
+
       - name: Build static site
         env:
+          PAGES_CUSTOM_DOMAIN: ${{ steps.pages-domain.outputs.cname }}
           VSCODE_STATIC_CNAME: ${{ vars.CUSTOM_DOMAIN }}
         run: |
-          if [ -n "$VSCODE_STATIC_CNAME" ]; then
-            export VSCODE_STATIC_BASE_URL="/"
+          CNAME_TARGET="${PAGES_CUSTOM_DOMAIN:-$VSCODE_STATIC_CNAME}"
+          if [ -z "$CNAME_TARGET" ] && [ -f "CNAME" ]; then
+            CNAME_TARGET=$(cat CNAME | tr -d '[:space:]')
+          fi
+
+          if [ -n "$CNAME_TARGET" ]; then
+            export VSCODE_STATIC_CNAME="$CNAME_TARGET"
+            export VSCODE_STATIC_BASE_URL=""
           else
             export VSCODE_STATIC_BASE_URL="/${{ github.event.repository.name }}"
           fi
