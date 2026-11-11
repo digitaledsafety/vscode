@@ -49,23 +49,40 @@ export function renderWorkbenchTemplate(template: string, values: Record<string,
 	return template.replace(/\{\{([^}]+)\}\}/g, (_, key) => htmlAttributeEncodeValue(values[key] ?? 'undefined'));
 }
 
-export function createStaticWorkbenchHtml(baseUrl: string = process.env['VSCODE_STATIC_BASE_URL'] || '.'): string {
+export function getStaticBaseUrl(): string {
+	if (process.env['VSCODE_STATIC_BASE_URL'] !== undefined) {
+		return process.env['VSCODE_STATIC_BASE_URL'];
+	}
+
+	const hasCname = Boolean(
+		process.env['VSCODE_STATIC_CNAME']
+		|| (fs.existsSync(path.join(REPO_ROOT, 'CNAME')) && fs.readFileSync(path.join(REPO_ROOT, 'CNAME'), 'utf8').trim())
+	);
+
+	return hasCname ? '' : '.';
+}
+
+export function createStaticWorkbenchHtml(baseUrl: string = getStaticBaseUrl()): string {
 	const templatePath = path.join(REPO_ROOT, 'src', 'vs', 'code', 'browser', 'workbench', 'workbench.html');
 	const template = fs.readFileSync(templatePath, 'utf8');
+
+	const normalizedBase = baseUrl === '.' ? '.' : baseUrl.replace(/\/+$/, '');
+	const callbackRoute = normalizedBase ? `${normalizedBase}/callback` : '/callback';
+	const nlsFallbackUrl = normalizedBase ? `${normalizedBase}/out/nls.messages.js` : '/out/nls.messages.js';
 
 	const workbenchWebConfiguration = {
 		serverBasePath: baseUrl,
 		_wrapWebWorkerExtHostInIframe: false,
-		callbackRoute: `${baseUrl}/callback`
+		callbackRoute
 	};
 
 	const scriptNonce = 'static-build-nonce';
 	const values: Record<string, string> = {
 		WORKBENCH_WEB_CONFIGURATION: JSON.stringify(workbenchWebConfiguration),
 		WORKBENCH_AUTH_SESSION: '',
-		WORKBENCH_WEB_BASE_URL: baseUrl,
+		WORKBENCH_WEB_BASE_URL: normalizedBase,
 		WORKBENCH_NLS_URL: '',
-		WORKBENCH_NLS_FALLBACK_URL: `${baseUrl}/out/nls.messages.js`,
+		WORKBENCH_NLS_FALLBACK_URL: nlsFallbackUrl,
 		WORKBENCH_SCRIPT_NONCE: scriptNonce
 	};
 
@@ -145,6 +162,16 @@ function packageStaticTask(sourceFolderName: string, destinationDir: string) {
 		const sources = es.merge(src, extensions)
 			.pipe(filter(['**', '!**/*.{js,css}.map'], { dot: true }));
 
+		// `remote/web` is a member of the `remote` workspace. The web build packages its production
+		// dependencies flat, in its own `node_modules`.
+		const deps = es.merge(...getFlatProductionDependencies(WEB_FOLDER).map(dependency => {
+			const d = path.relative(REPO_ROOT, dependency.source);
+			return gulp.src([`${d}/**`, `!${d}/node_modules/**`, `!${d}/**/{test,tests}/**`, `!${d}/.bin/**`], { base: path.relative(REPO_ROOT, dependency.base), dot: true })
+				.pipe(toPackagedLayout([dependency]));
+		}))
+			.pipe(filter(['**', '!**/package-lock.json']))
+			.pipe(util.cleanNodeModules(path.join(import.meta.dirname, '.webignore')));
+
 		const favicon = gulp.src('resources/server/favicon.ico', { base: 'resources/server' });
 		const manifest = gulp.src('resources/server/manifest.json', { base: 'resources/server' });
 		const pwaicons = es.merge(
@@ -152,8 +179,8 @@ function packageStaticTask(sourceFolderName: string, destinationDir: string) {
 			gulp.src('resources/server/code-512.png', { base: 'resources/server' })
 		);
 
-		// Static site entry points: index.html and .nojekyll for GitHub Pages
-		const staticFilesStream = es.readArray([
+		// Static site entry points: index.html, .nojekyll, and optional CNAME for GitHub Pages
+		const staticFiles: File[] = [
 			new File({
 				path: 'index.html',
 				base: '.',
@@ -164,10 +191,24 @@ function packageStaticTask(sourceFolderName: string, destinationDir: string) {
 				base: '.',
 				contents: Buffer.from('')
 			})
-		]);
+		];
+
+		const cnameContent = process.env['VSCODE_STATIC_CNAME']
+			?? (fs.existsSync(path.join(REPO_ROOT, 'CNAME')) ? fs.readFileSync(path.join(REPO_ROOT, 'CNAME'), 'utf8').trim() : undefined);
+
+		if (cnameContent) {
+			staticFiles.push(new File({
+				path: 'CNAME',
+				base: '.',
+				contents: Buffer.from(`${cnameContent}\n`)
+			}));
+		}
+
+		const staticFilesStream = es.readArray(staticFiles);
 
 		const all = es.merge(
 			sources,
+			deps,
 			favicon,
 			manifest,
 			pwaicons,
